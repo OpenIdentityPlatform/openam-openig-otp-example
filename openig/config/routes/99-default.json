@@ -1,0 +1,15 @@
+{
+  "name": "99-default",
+  "handler": {
+    "type": "StaticResponseHandler",
+    "config": {
+      "status": 404,
+      "reason": "Not Found",
+      "headers": {
+        "Content-Type": [ "application/json" ]
+      },
+      "entity": "{ \"error\": \"Something went wrong, please contact your system administrator.\"}"
+    }
+  },
+  "audit": "/404"
+}

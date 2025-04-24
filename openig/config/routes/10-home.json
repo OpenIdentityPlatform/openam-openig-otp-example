@@ -1,0 +1,89 @@
+{
+    "name": "${matches(request.uri.path, '^/')}",
+    "condition": "${matches(request.uri.path, '^/')}",
+    "monitor": true,
+    "timer": true,
+    "handler": {
+        "type": "Chain",
+        "config": {
+            "filters": [
+                {
+                    "type": "ConditionalFilter",
+                    "config": {
+                        "condition": "${empty contexts.sts.issuedToken and not empty request.cookies['iPlanetDirectoryPro'][0].value}",
+                        "delegate": {
+                            "type": "TokenTransformationFilter",
+                            "config": {
+                                "openamUri": "${system['openam']}",
+                                "realm": "/",
+                                "instance": "jwt",
+                                "from": "OPENAM",
+                                "to": "OPENIDCONNECT",
+                                "idToken": "${request.cookies['iPlanetDirectoryPro'][0].value}"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "ConditionalFilter",
+                    "config": {
+                        "condition": "${not empty contexts.sts.issuedToken}",
+                        "delegate": {
+                            "type": "HeaderFilter",
+                            "config": {
+                                "messageType": "REQUEST",
+                                "remove": [
+                                    "Authorization",
+                                    "JWT"
+                                ],
+                                "add": {
+                                    "Authorization": [
+                                        "Bearer ${contexts.sts.issuedToken}"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "ConditionEnforcementFilter",
+                    "config": {
+                        "condition": "${not empty contexts.sts.issuedToken}",
+                        "failureHandler": {
+                            "type": "StaticResponseHandler",
+                            "config": {
+                                "status": 302,
+                                "reason": "Found",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/json"
+                                    ],
+                                    "Location": [
+                                        "${system['openam']}/UI/Login?org=/&goto=${urlEncode(contexts.router.originalUri)}"
+                                    ]
+                                },
+                                "entity": "{ \"Redirect\": \"${system['openam']}/XUI/#login&goto=${urlEncode(contexts.router.originalUri)}\"}"
+                            }
+                        }
+                    }
+                }
+            ],
+            "handler": "EndpointHandler"
+        }
+    },
+    "heap": [
+        {
+            "name": "EndpointHandler",
+            "type": "DispatchHandler",
+            "config": {
+                "bindings": [
+                    {
+                        "handler": "ClientHandler",
+                        "capture": "all",
+                        "baseURI": "${system['demo.app']}"
+                    }
+                ]
+            }
+        }
+    ]
+}
