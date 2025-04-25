@@ -6,25 +6,25 @@ import org.forgerock.json.jose.jws.SignedJwt
 
 def jwt=contexts["sts"]!=null?contexts["sts"].issuedToken:null
 
-//logger.info("requiredModule: {}, timeoutSec: {}, location: {}", requiredModule, timeoutSec, location)
-
+//check if JWT is present in the request
 if (jwt == null || "".equalsIgnoreCase(jwt)) { 
     response = new Response(Status.UNAUTHORIZED)
     response.headers.add("Content-Type", "application/json; charset=UTF-8")
     response.entity=new org.forgerock.json.JsonValue(["error": "Missing JWT"])
     return response
 }
+
+//calculate the location to redirect for MFA authentication
+String newLocation = location + URLEncoder.encode(contexts.router.originalUri.toString(), StandardCharsets.UTF_8);
+
 try {
-    String newLocation = location + URLEncoder.encode(contexts.router.originalUri.toString(), StandardCharsets.UTF_8);
-
-
+    //parse JWT
     def claims = new JwtBuilderFactory().reconstruct(jwt, SignedJwt.class).getClaimsSet()
     def loginUrl = claims.getClaim("FullLoginURL")
     def authInstant = claims.getClaim("authInstant")
+    def loginUrlFragment = "authIndexValue=" + requiredChain
 
-    logger.info("login url: {}, auth instant: {}", loginUrl, authInstant)
-
-    def loginUrlFragment = "authIndexValue=totp"
+    //chefk if the user login url contains totp service
     if(!loginUrl.contains(loginUrlFragment)){
         logger.warn("Login URL does not contain the expected fragment: " + loginUrlFragment)
         response = new Response(Status.FOUND)
@@ -33,7 +33,6 @@ try {
     }
 
     //check auth time
-    
     Instant instant = Instant.parse(authInstant);
     long epochMillisTimeout = instant.toEpochMilli() + timeoutSec * 1000;
     if (epochMillisTimeout < System.currentTimeMillis()) {
@@ -42,7 +41,6 @@ try {
         response.headers.add("Location", newLocation)
         return response
     }
-
     
 } catch (Exception e) {
     logger.error("Error reconstructing JWT: " + e.getMessage())

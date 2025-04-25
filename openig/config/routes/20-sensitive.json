@@ -14,7 +14,7 @@
             "type": "application/x-groovy",
             "file": "mfa.groovy",
             "args": {
-              "requiredModule": "totp",
+              "requiredChain": "totp",
               "timeoutSec": 20,
               "location": "${system['openam']}/XUI/#login&service=totp&ForceAuth=true&goto="
              }

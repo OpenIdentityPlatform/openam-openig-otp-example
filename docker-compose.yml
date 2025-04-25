@@ -1,4 +1,10 @@
 services:
+  demo-app:
+    build: ./demo-app
+    container_name: demo-app
+    ports:
+      - "3000:3000"
+
   openam:
     image: openidentityplatform/openam:latest
     container_name: openam
@@ -19,8 +25,4 @@ services:
     ports:
       - "8081:8080"
 
-  demo-app:
-    build: ./demo-app
-    container_name: demo-app
-    ports:
-      - "3000:3000"
+
