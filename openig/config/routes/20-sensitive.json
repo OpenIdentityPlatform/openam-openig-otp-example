@@ -8,19 +8,28 @@
     "config": {
       "filters": [
         {
-          "name": "MFAFilter",
-          "type": "ScriptableFilter",
+          "name": "MFAPEPFilter",
+          "type": "PolicyEnforcementFilter",
           "config": {
-            "type": "application/x-groovy",
-            "file": "mfa.groovy",
-            "args": {
-              "requiredChain": "totp",
-              "timeoutSec": 20,
-              "location": "${system['openam']}/XUI/#login&service=totp&ForceAuth=true&goto="
-             }
-          }
+            "openamUrl": "${system['openam']}",
+            "pepUsername": "amadmin",
+            "pepPassword": "ampassword",
+            "ssoTokenSubject": "${request.cookies['iPlanetDirectoryPro'][0].value}",
+            "failureHandler": {
+              "type": "StaticResponseHandler",
+              "config": {
+                "status": 403,
+                "headers": {
+                  "Content-Type": [
+                    "application/json"
+                  ]
+                },
+                "entity": "{ \"attributes\": \"${system['openam']}/XUI/#login&service=totp&ForceAuth=true&goto=${urlEncode(contexts.router.originalUri)}\"}"
+              }
+            }
+          },
+          "handler": "ClientHandler"
         }
-        
       ],
       "handler": "EndpointHandler"
     }
